@@ -362,10 +362,18 @@ def get_tar_name(d, suffix):
 
     return filename
 
-def exclude_useless_paths(tarinfo):
+def exclude_useless_paths_and_strip_metadata(tarinfo):
     if tarinfo.isdir():
         if tarinfo.name.endswith('/temp'):
             return None
+
+    # Clear metadata of the file to make checksum of the tar deterministic.
+    tarinfo.mtime = 0
+    tarinfo.uid = 0
+    tarinfo.uname = ''
+    tarinfo.gid = 0
+    tarinfo.gname = ''
+
     return tarinfo
 
 addtask do_write_spdx after do_patch before do_build
