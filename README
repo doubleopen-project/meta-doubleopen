@@ -1,41 +1,18 @@
-This README file contains information on the contents of the meta-doubleopen layer.
+# Double Open's meta layer for Yocto
 
-Please see the corresponding sections below for details.
+## Description
 
-Dependencies
-============
+This meta layer is intended for use with Double Open's open source license compliance workflow. The
+layer saves information from a Yocto build that is required for the workflow.
 
-  URI: <first dependency>
-  branch: <branch name>
+### SPDX
 
-  URI: <second dependency>
-  branch: <branch name>
+The layer saves SPDX documents describing the packages of the build in json format to `deploy/spdx`.
 
-  .
-  .
-  .
+### Source arhive
 
-Patches
-=======
+The layer saves source archives of the packages to `deploy/spdx`.
 
-Please submit any patches against the meta-doubleopen layer to the xxxx mailing list (xxxx@zzzz.org)
-and cc: the maintainer:
+## Instructions
 
-Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
-
-Table of Contents
-=================
-
-  I. Adding the meta-doubleopen layer to your build
- II. Misc
-
-
-I. Adding the meta-doubleopen layer to your build
-=================================================
-
-Run 'bitbake-layers add-layer meta-doubleopen'
-
-II. Misc
-========
-
---- replace with specific information about the meta-doubleopen layer ---
+Add the layer to `layers.conf`. Add `INHERIT += "doubleopen"` to `local.conf`.
