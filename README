@@ -15,4 +15,4 @@ The layer saves source archives of the packages to `deploy/spdx`.
 
 ## Instructions
 
-Add the layer to `layers.conf`. Add `INHERIT += "doubleopen"` to `local.conf`.
+Add the layer to `bblayers.conf`. Add `INHERIT += "doubleopen"` to `local.conf`.

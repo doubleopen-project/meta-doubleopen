@@ -202,7 +202,6 @@ python do_write_spdx() {
                 spdx['files'].append(spdx_file)
 
     tar_name = spdx_create_tarball(d, spdx_workdir, '', manifest_dir)
-
     
     # Save SPDX for the package in pkgdata.
     with open(data_file + ".spdx.json", 'w') as f:
@@ -212,6 +211,8 @@ python do_write_spdx() {
 def get_patched_cves(d):
     """
     Get patches that solve CVEs using the "CVE: " tag.
+
+    Returns a set of strings.
     """
 
     import re
@@ -265,8 +266,10 @@ def get_patched_cves(d):
 
     return patched_cves
 
-# Run do_unpack and do_patch
 def spdx_get_src(d):
+    """
+    save patched source of the recipe in SPDX_WORKDIR.
+    """
     import shutil
     spdx_workdir = d.getVar('SPDX_WORKDIR')
     spdx_sysroot_native = d.getVar('STAGING_DIR_NATIVE')
@@ -314,6 +317,9 @@ def is_work_shared(d):
     return bb.data.inherits_class('kernel', d) or pn.startswith('gcc-source')
 
 def remove_dir_tree(dir_name):
+    """
+    Remove directory tree.
+    """
     import shutil
     try:
         shutil.rmtree(dir_name)
@@ -327,15 +333,11 @@ def spdx_create_tarball(d, srcdir, suffix, ar_outdir):
     """
     import tarfile, shutil
 
-    # Make sure we are only creating a single tarball for gcc sources
-    #if (d.getVar('SRC_URI') == ""):
-    #    return
     # For the kernel archive, srcdir may just be a link to the
     # work-shared location. Use os.path.realpath to make sure
     # that we archive the actual directory and not just the link.
     srcdir = os.path.realpath(srcdir)
     bb.utils.mkdirhier(ar_outdir)
-
     filename = get_tar_name(d, suffix)
     tarname = os.path.join(ar_outdir, filename)
     bb.warn('Creating %s' % tarname)
@@ -349,12 +351,6 @@ def get_tar_name(d, suffix):
     get the name of tarball
     """
 
-    # Make sure we are only creating a single tarball for gcc sources
-    #if (d.getVar('SRC_URI') == ""):
-    #    return
-    # For the kernel archive, srcdir may just be a link to the
-    # work-shared location. Use os.path.realpath to make sure
-    # that we archive the actual directory and not just the link.
     if suffix:
         filename = '%s-%s.tar.bz2' % (d.getVar('PF'), suffix)
     else:
@@ -364,6 +360,7 @@ def get_tar_name(d, suffix):
 
 def exclude_useless_paths_and_strip_metadata(tarinfo):
     if tarinfo.isdir():
+        # Yocto saves logs in /temp, so delete it before archiving.
         if tarinfo.name.endswith('/temp'):
             return None
 
