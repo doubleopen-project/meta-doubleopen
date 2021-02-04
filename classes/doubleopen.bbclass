@@ -342,7 +342,7 @@ def spdx_create_tarball(d, srcdir, suffix, ar_outdir):
     tarname = os.path.join(ar_outdir, filename)
     bb.warn('Creating %s' % tarname)
     tar = tarfile.open(tarname, 'w:bz2')
-    tar.add(srcdir, arcname=os.path.basename(srcdir), filter=exclude_useless_paths)
+    tar.add(srcdir, arcname=os.path.basename(srcdir), filter=exclude_useless_paths_and_strip_metadata)
     tar.close()
     return tarname
 
