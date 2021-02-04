@@ -1,5 +1,7 @@
 PACKAGEFUNCS_append = " write_srclist"
-
+    
+# The product name that the CVE database uses.  Defaults to BPN, but may need to
+# be overriden per recipe (for example tiff.bb sets CVE_PRODUCT=libtiff).
 CVE_PRODUCT ??= "${BPN}"
 CVE_VERSION ??= "${PV}"
 
@@ -14,17 +16,21 @@ SPDX_EXCLUDE_PACKAGES ??= ""
 
 do_write_spdx[dirs] = "${WORKDIR}"
 
-# Save results in split_and_strip_files to use it during do_package.
+# During do_package, debug info is saved in `results` variable. We need this info later to
+# determine relationships between source files and binaries, so save the data to be used later.
 split_and_strip_files_append() {
     if (d.getVar('INHIBIT_PACKAGE_DEBUG_SPLIT') != '1'):
         d.setVar('TEMPDBGSRCMAPPING', results)
 }
 
-# Exclude package based on variables.
-# SPDX_EXCLUDE_NATIVE ??= "1"
-# SPDX_EXCLUDE_SDK ??= "1"
-# SPDX_EXCLUDE_PACKAGES ??= ""
 def excluded_package(d, pn):
+    """
+    Exclude package based on variables.
+
+    SPDX_EXCLUDE_NATIVE ??= "1"
+    SPDX_EXCLUDE_SDK ??= "1"
+    SPDX_EXCLUDE_PACKAGES ??= ""
+    """
     assume_provided = (d.getVar("ASSUME_PROVIDED") or "").split()
     if pn in assume_provided:
         for p in d.getVar("PROVIDES").split():
@@ -154,11 +160,14 @@ python do_write_spdx() {
     package_summary = (d.getVar('SUMMARY', True) or "")
     spdx["summary"] = package_summary
 
+    # Recipe's CVE_PRODUCT may include multiple identifiers. Add all of them to the SPDX.
     cve_products = d.getVar('CVE_PRODUCT').split()
     version = d.getVar('CVE_VERSION').split("+git")[0]
     cpe_ids = []
     if cve_products:
         for product in cve_products:
+            # CVE_PRODUCT in recipes may include vendor information for CPE identifiers. If not,
+            # use wildcard for vendor.
             if ":" in product:
                 vendor, product = product.split(":", 1)
             else:
@@ -172,10 +181,12 @@ python do_write_spdx() {
             cpe_ids.append(cpe)
         spdx["externalRefs"] = cpe_ids
 
+        # Some CVEs may be patched during the build process without incrementing the version number,
+        # so querying for CVEs based on the CPE id can lead to false positives. To account for this,
+        # save the CVEs fixed by patches to source information field in the SPDX.
         patched_cves = get_patched_cves(d)
         patched_cves = list(patched_cves)
         patched_cves = ' '.join(patched_cves)
-        
         spdx["sourceInfo"] = "CVEs fixed: " + patched_cves
 
     spdx_get_src(d)
