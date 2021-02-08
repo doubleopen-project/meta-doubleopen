@@ -374,6 +374,8 @@ def exclude_useless_paths_and_strip_metadata(tarinfo):
         # Yocto saves logs in /temp, so delete it before archiving.
         if tarinfo.name.endswith('/temp'):
             return None
+        if tarinfo.name.endswith('/.git'):
+            return None
 
     # Clear metadata of the file to make checksum of the tar deterministic.
     tarinfo.mtime = 0
