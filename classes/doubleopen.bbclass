@@ -36,12 +36,15 @@ python write_srclist() {
     sources = []
     if sourceresults:
         for binary_path in sourceresults:
+            # In addition to lists with binary_path[0] being the path of the binary and 
+            # binary_path[1] the list of source files used, sourceresults includes just plain
+            # strings of filepaths. Skip these.
+            if type(binary_path) is not list:
+                continue
+
             binary = {}
             binary["path"] = binary_path[0]
-            if os.path.isfile(binary["path"]):
-                binary["sha256"] = sha256(binary["path"])
-            else:
-                binary["sha256"] = None
+            binary["sha256"] = sha256(binary["path"])
             binary["sources"] = []
             for source in binary_path[1]:
                 sourcedirents = [d.getVar('PKGD'), d.getVar('STAGING_DIR_TARGET')]
