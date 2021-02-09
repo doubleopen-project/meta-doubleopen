@@ -26,6 +26,10 @@ split_and_strip_files_append() {
 }
 
 python write_srclist() {
+    """
+    This function is added to do_package to write srclist.json based on the debug information saved
+    to the pkgdata directory.
+    """
     import json
 
     pkgdatadir = d.getVar('PKGDESTWORK')
@@ -47,6 +51,10 @@ python write_srclist() {
             binary["sha256"] = sha256(binary["path"])
             binary["sources"] = []
             for source in binary_path[1]:
+                # The debug information includes pahts to source for the binary in the build
+                # environment. Some of the source files can be found by appending the path to source
+                # to PKGD and some to STAGING_DIR_TARGET, so check them both. This does not find
+                # the source files for 
                 sourcedirents = [d.getVar('PKGD'), d.getVar('STAGING_DIR_TARGET')]
                 success = False
                 for dirent in sourcedirents:
@@ -277,7 +285,7 @@ python do_write_spdx() {
             spdx["relationships"].append(relationship)
             spdx["files"].append(file)
 
-    tar_name = spdx_create_tarball(d, spdx_workdir, '', manifest_dir)
+    tar_name = spdx_create_tarball(d, spdx_workdir, manifest_dir)
     
     # Save SPDX for the package in pkgdata.
     with open(data_file + ".spdx.json", 'w') as f:
@@ -388,7 +396,7 @@ def spdx_get_src(d):
     if not os.path.exists( spdx_workdir ):
         bb.utils.mkdirhier(spdx_workdir)
 
-def spdx_create_tarball(d, srcdir, suffix, ar_outdir):
+def spdx_create_tarball(d, srcdir, ar_outdir):
     """
     create the tarball from srcdir
     """
@@ -399,24 +407,12 @@ def spdx_create_tarball(d, srcdir, suffix, ar_outdir):
     # that we archive the actual directory and not just the link.
     srcdir = os.path.realpath(srcdir)
     bb.utils.mkdirhier(ar_outdir)
-    filename = get_tar_name(d, suffix)
+    filename = '%s.tar.bz2' % d.getVar('PF')
     tarname = os.path.join(ar_outdir, filename)
     tar = tarfile.open(tarname, 'w:bz2')
     tar.add(srcdir, arcname=os.path.basename(srcdir), filter=exclude_useless_paths_and_strip_metadata)
     tar.close()
     return tarname
-
-def get_tar_name(d, suffix):
-    """
-    get the name of tarball
-    """
-
-    if suffix:
-        filename = '%s-%s.tar.bz2' % (d.getVar('PF'), suffix)
-    else:
-        filename = '%s.tar.bz2' % d.getVar('PF')
-
-    return filename
 
 def exclude_useless_paths_and_strip_metadata(tarinfo):
     if tarinfo.isdir():
