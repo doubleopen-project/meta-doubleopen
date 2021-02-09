@@ -94,11 +94,26 @@ def sha256(fname):
             hash_sha256.update(chunk)
     return hash_sha256.hexdigest()
 
+def sha1(fname):
+    """
+    Calculate SHA1 checksum for a file. 
+    """
+
+    import hashlib
+
+    hash_sha1 = hashlib.sha1()
+    with open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha1.update(chunk)
+    return hash_sha1.hexdigest()
+
 python do_write_spdx() {
     """
     Write SPDX information of the package to an SPDX JSON document.
     """
     import os
+    from datetime import datetime, timezone
+    import uuid
 
     if bb.data.inherits_class('nopackages', d):
         return
@@ -144,21 +159,54 @@ python do_write_spdx() {
 
     spdx = {}
 
-    spdx["name"] = d.getVar('PN')
+    # Document Creation information
 
-    spdx["version"] = d.getVar('PV')
+    spdx["spdxVersion"] = "SPDX-2.2"
+    spdx["dataLicense"] = "CC0-1.0"
+    spdx["SPDXID"] = "SPDXRef-" + d.getVar("PF")
+    spdx["name"] = d.getVar("PF")
+    spdx["documentNamespace"] = "http://spdx.org/spdxdocs/" + spdx["name"] + str(uuid.uuid4())
+
+    spdx["creationInfo"] = {}
+
+    creation_time = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    spdx["creationInfo"]["created"] = creation_time
+    spdx["creationInfo"]["licenseListVersion"] = "3.11"
+    spdx["creationInfo"]["comment"] = "This document was created by analyzing the source of the Yocto recipe during the build."
+    spdx["creationInfo"]["creators"] = ["Tool: meta-doubleopen", "Organization: Double Open Project ()", "Person: N/A ()"]
+
+    # Package Information
+
+    spdx_package = {}
+
+    spdx_package["name"] = d.getVar('PN')
+
+    spdx_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+
+    spdx_package["version"] = d.getVar('PV')
 
     package_download_location = (d.getVar('SRC_URI', True) or "")
     if package_download_location != "":
         package_download_location = package_download_location.split()[0]
-    spdx["downloadLocation"] = package_download_location
+    spdx_package["downloadLocation"] = package_download_location
     
     
     package_homepage = (d.getVar('HOMEPAGE', True) or "")
-    spdx["homepage"] = package_homepage
+    spdx_package["homepage"] = package_homepage
+
+    spdx_package["licenseConcluded"] = "NOASSERTION"
+    spdx_package["licenseInfoFromFiles"] = ["NOASSERTION"]
+    licenses = d.getVar("LICENSE")
+    if licenses:
+        spdx_package["licenseDeclared"] = licenses
+    else:
+        spdx_package["licenseDeclared"] = "NOASSERTION"
 
     package_summary = (d.getVar('SUMMARY', True) or "")
-    spdx["summary"] = package_summary
+    spdx_package["summary"] = package_summary
+    description = d.getVar('DESCRIPTION')
+    if description:
+        spdx_package["description"] = description
 
     # Recipe's CVE_PRODUCT may include multiple identifiers. Add all of them to the SPDX.
     cve_products = d.getVar('CVE_PRODUCT').split()
@@ -179,7 +227,7 @@ python do_write_spdx() {
             cpe["referenceType"] = "http://spdx.org/rdf/references/cpe23Type"
             cpe["referenceLocator"] = cpe_id
             cpe_ids.append(cpe)
-        spdx["externalRefs"] = cpe_ids
+        spdx_package["externalRefs"] = cpe_ids
 
         # Some CVEs may be patched during the build process without incrementing the version number,
         # so querying for CVEs based on the CPE id can lead to false positives. To account for this,
@@ -187,13 +235,16 @@ python do_write_spdx() {
         patched_cves = get_patched_cves(d)
         patched_cves = list(patched_cves)
         patched_cves = ' '.join(patched_cves)
-        spdx["sourceInfo"] = "CVEs fixed: " + patched_cves
+        spdx_package["sourceInfo"] = "CVEs fixed: " + patched_cves
 
     spdx_get_src(d)
 
-    spdx['files'] = []
+    spdx["packages"] = [spdx_package]
 
-    ignore_dirs = ["temp"]
+    spdx['files'] = []
+    spdx["relationships"] = []
+
+    ignore_dirs = ["temp", ".git"]
 
     for subdir, dirs, files in os.walk(spdx_workdir):
         if subdir == spdx_workdir:
@@ -202,15 +253,80 @@ python do_write_spdx() {
             filepath = os.path.join(subdir,file)
             if os.path.exists(filepath):
                 spdx_file = {}
+                spdx_file["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
                 spdx_file["checksums"] = []
                 file_sha256 = {}
                 file_sha256["algorithm"] = "SHA256"
                 file_sha256["checksumValue"] = sha256(filepath)
+                file_sha1 = {}
+                file_sha1["algorithm"] = "SHA1"
+                file_sha1["checksumValue"] = sha1(filepath)
                 spdx_file["checksums"].append(file_sha256)
+                spdx_file["checksums"].append(file_sha1)
                 filename = os.path.relpath(os.path.join(subdir, file), spdx_workdir)
                 spdx_file["fileName"] = filename
+                spdx_file["licenseConcluded"] = "NOASSERTION"
+                spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
+                spdx_file["copyrightText"] = "NOASSERTION"
+
+                # All files in the source of the recipe are marked as SOURCE.
+                spdx_file["fileTypes"] = ["SOURCE"]
 
                 spdx['files'].append(spdx_file)
+
+                relationship = {}
+                relationship["spdxElementId"] = spdx_package["SPDXID"]
+                relationship["relatedSpdxElement"] = spdx_file["SPDXID"]
+                relationship["relationshipType"] = "CONTAINS"
+                spdx["relationships"].append(relationship)
+
+    # Change workdir back to get correct D.
+    d.setVar("WORKDIR", workdir)
+    output_dir = d.getVar("D")
+    bb.warn("output_dir: " + output_dir)
+
+    output_files = []
+    ignore_dirs = ["temp", ".git"]
+
+    for subdir, dirs, files in os.walk(output_dir, followlinks=True):
+        if subdir == output_dir:
+            dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        for file in files:
+            filepath = os.path.join(subdir,file)
+            if os.path.exists(filepath):
+                spdx_file = {}
+                spdx_file["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+                spdx_file["checksums"] = []
+                file_sha256 = {}
+                file_sha256["algorithm"] = "SHA256"
+                file_sha256["checksumValue"] = sha256(filepath)
+                file_sha1 = {}
+                file_sha1["algorithm"] = "SHA1"
+                file_sha1["checksumValue"] = sha1(filepath)
+                spdx_file["checksums"].append(file_sha256)
+                spdx_file["checksums"].append(file_sha1)
+                filename = os.path.relpath(os.path.join(subdir, file), output_dir)
+                spdx_file["fileName"] = filename
+                spdx_file["licenseConcluded"] = "NOASSERTION"
+                spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
+                spdx_file["copyrightText"] = "NOASSERTION"
+            
+                # All deployed files of the package are marked as BINARY.
+                spdx_file["fileTypes"] = ["BINARY"]
+
+                output_files.append(spdx_file)
+
+    if output_files:
+        bb.warn("Output files found.")
+        for file in output_files:
+            relationship = {}
+            relationship["spdxElementId"] = spdx_package["SPDXID"]
+            relationship["relatedSpdxElement"] = file["SPDXID"]
+            relationship["relationshipType"] = "GENERATES"
+            spdx["relationships"].append(relationship)
+            spdx["files"].append(file)
+    else:
+        bb.warn("No output files found.")
 
     tar_name = spdx_create_tarball(d, spdx_workdir, '', manifest_dir)
     
@@ -386,4 +502,4 @@ def exclude_useless_paths_and_strip_metadata(tarinfo):
 
     return tarinfo
 
-addtask do_write_spdx after do_patch before do_build
+addtask do_write_spdx after do_install before do_build
