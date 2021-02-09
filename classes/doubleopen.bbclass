@@ -79,6 +79,8 @@ python write_srclist() {
                         sources[r[0]].append({source: None})
         with open(data_file + ".srclist", 'w') as f:
             f.write(json.dumps(sources, sort_keys=True))
+        with open(data_file + ".sourceresults", 'w') as f:
+            f.write(json.dumps(sourceresults, sort_keys=True))
 }
 
 def sha256(fname):
@@ -157,18 +159,16 @@ python do_write_spdx() {
     workdir = d.getVar('WORKDIR')
     data_file = manifest_dir + d.expand("/${PF}")
 
+    # Create SPDX for the package
     spdx = {}
 
     # Document Creation information
-
     spdx["spdxVersion"] = "SPDX-2.2"
     spdx["dataLicense"] = "CC0-1.0"
     spdx["SPDXID"] = "SPDXRef-" + d.getVar("PF")
     spdx["name"] = d.getVar("PF")
     spdx["documentNamespace"] = "http://spdx.org/spdxdocs/" + spdx["name"] + str(uuid.uuid4())
-
     spdx["creationInfo"] = {}
-
     creation_time = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     spdx["creationInfo"]["created"] = creation_time
     spdx["creationInfo"]["licenseListVersion"] = "3.11"
@@ -176,24 +176,16 @@ python do_write_spdx() {
     spdx["creationInfo"]["creators"] = ["Tool: meta-doubleopen", "Organization: Double Open Project ()", "Person: N/A ()"]
 
     # Package Information
-
     spdx_package = {}
-
     spdx_package["name"] = d.getVar('PN')
-
     spdx_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
-
     spdx_package["version"] = d.getVar('PV')
-
     package_download_location = (d.getVar('SRC_URI', True) or "")
     if package_download_location != "":
         package_download_location = package_download_location.split()[0]
     spdx_package["downloadLocation"] = package_download_location
-    
-    
     package_homepage = (d.getVar('HOMEPAGE', True) or "")
     spdx_package["homepage"] = package_homepage
-
     spdx_package["licenseConcluded"] = "NOASSERTION"
     spdx_package["licenseInfoFromFiles"] = ["NOASSERTION"]
     licenses = d.getVar("LICENSE")
@@ -201,7 +193,6 @@ python do_write_spdx() {
         spdx_package["licenseDeclared"] = licenses
     else:
         spdx_package["licenseDeclared"] = "NOASSERTION"
-
     package_summary = (d.getVar('SUMMARY', True) or "")
     spdx_package["summary"] = package_summary
     description = d.getVar('DESCRIPTION')
@@ -235,8 +226,10 @@ python do_write_spdx() {
         patched_cves = get_patched_cves(d)
         patched_cves = list(patched_cves)
         patched_cves = ' '.join(patched_cves)
-        spdx_package["sourceInfo"] = "CVEs fixed: " + patched_cves
+        if patched_cves:
+            spdx_package["sourceInfo"] = "CVEs fixed: " + patched_cves
 
+    # Get and patch the source for the recipe
     spdx_get_src(d)
 
     spdx["packages"] = [spdx_package]
@@ -244,11 +237,16 @@ python do_write_spdx() {
     spdx['files'] = []
     spdx["relationships"] = []
 
-    ignore_dirs = ["temp", ".git"]
+    ignore_dirs = [".git"]
+    # Yocto creates temp directory for logs etc in the top level of the workdir. We want to ignore
+    # it but include directories named temp deeper in the source.
+    ignore_top_level_dirs = ["temp"]
 
+    # Iterate over files in the recipe's source and create SPDX file objects for them.
     for subdir, dirs, files in os.walk(spdx_workdir):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
         if subdir == spdx_workdir:
-            dirs[:] = [d for d in dirs if d not in ignore_dirs]
+            dirs[:] = [d for d in dirs if d not in ignore_top_level_dirs]
         for file in files:
             filepath = os.path.join(subdir,file)
             if os.path.exists(filepath):
@@ -283,7 +281,6 @@ python do_write_spdx() {
     # Change workdir back to get correct D.
     d.setVar("WORKDIR", workdir)
     output_dir = d.getVar("D")
-    bb.warn("output_dir: " + output_dir)
 
     output_files = []
     ignore_dirs = ["temp", ".git"]
@@ -317,7 +314,6 @@ python do_write_spdx() {
                 output_files.append(spdx_file)
 
     if output_files:
-        bb.warn("Output files found.")
         for file in output_files:
             relationship = {}
             relationship["spdxElementId"] = spdx_package["SPDXID"]
@@ -325,8 +321,6 @@ python do_write_spdx() {
             relationship["relationshipType"] = "GENERATES"
             spdx["relationships"].append(relationship)
             spdx["files"].append(file)
-    else:
-        bb.warn("No output files found.")
 
     tar_name = spdx_create_tarball(d, spdx_workdir, '', manifest_dir)
     
@@ -467,7 +461,6 @@ def spdx_create_tarball(d, srcdir, suffix, ar_outdir):
     bb.utils.mkdirhier(ar_outdir)
     filename = get_tar_name(d, suffix)
     tarname = os.path.join(ar_outdir, filename)
-    bb.warn('Creating %s' % tarname)
     tar = tarfile.open(tarname, 'w:bz2')
     tar.add(srcdir, arcname=os.path.basename(srcdir), filter=exclude_useless_paths_and_strip_metadata)
     tar.close()
