@@ -66,20 +66,31 @@ python write_srclist() {
     data_file = pkgdatadir + d.expand("/${PN}")
 
     sourceresults = d.getVar('TEMPDBGSRCMAPPING', False)
-    sources = {}
+    sources = []
     if sourceresults:
-        for r in sourceresults:
-            sources[r[0]] = []
-            for source in r[1]:
+        for binary_path in sourceresults:
+            binary = {}
+            binary["path"] = binary_path[0]
+            if os.path.isfile(binary["path"]):
+                binary["sha256"] = sha256(binary["path"])
+            else:
+                binary["sha256"] = None
+            binary["sources"] = []
+            for source in binary_path[1]:
                 sourcedirents = [d.getVar('PKGD'), d.getVar('STAGING_DIR_TARGET')]
+                success = False
                 for dirent in sourcedirents:
                     try:
-                        sources[r[0]].append({source: sha256(dirent + source)})
+                        binary["sources"].append({source: sha256(dirent + source)})
+                        success = True
                     except:
-                        sources[r[0]].append({source: None})
-        with open(data_file + ".srclist", 'w') as f:
+                        continue
+                if success == False:
+                    binary["sources"].append({source: None})
+            sources.append(binary)
+        with open(data_file + ".srclist.json", 'w') as f:
             f.write(json.dumps(sources, sort_keys=True))
-        with open(data_file + ".sourceresults", 'w') as f:
+        with open(data_file + ".sourceresults.json", 'w') as f:
             f.write(json.dumps(sourceresults, sort_keys=True))
 }
 
