@@ -31,7 +31,7 @@ python write_srclist() {
             # In addition to lists with binary_path[0] being the path of the binary and 
             # binary_path[1] the list of source files used, sourceresults includes just plain
             # strings of filepaths. Skip these.
-            if type(binary_path) is not list:
+            if isinstance(binary_path, str):
                 continue
 
             binary = {}
