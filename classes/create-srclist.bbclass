@@ -48,14 +48,18 @@ python write_srclist() {
                 # the source files for 
                 sourcedirents = [d.getVar('PKGD'), d.getVar('STAGING_DIR_TARGET')]
                 success = False
+                source_file = {}
+                source_file["path"] = source
                 for dirent in sourcedirents:
                     try:
-                        binary["sources"].append({source: sha256(dirent + source)})
+                        source_file["sha256"] = sha256(dirent + source)
                         success = True
                     except:
                         continue
                 if success == False:
-                    binary["sources"].append({source: None})
+                    source_file["sha256"] = None
+
+                binary["sources"].append(source_file)
 
             sources.append(binary)
 
