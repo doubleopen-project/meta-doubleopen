@@ -13,6 +13,15 @@ The layer saves SPDX documents describing the packages of the build in json form
 
 The layer saves source archives of the packages to `deploy/spdx`.
 
+### Srclist
+
+`create-srclist.bbclass` adds a function to `do_package` to save mapping between binary files
+produced by the recipe and source files 
+
+### CVE data
+
+`cve-data.bbclass` includes helper utilities to extract CVE related information for the recipes.
+
 ## Instructions
 
 Add the layer to `bblayers.conf`. Add `INHERIT += "doubleopen"` to `local.conf`.

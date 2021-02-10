@@ -72,3 +72,38 @@ def remove_dir_tree(dir_name):
         shutil.rmtree(dir_name)
     except:
         pass
+
+def spdx_create_tarball(d, srcdir, ar_outdir):
+    """
+    create the tarball from srcdir
+    """
+    import tarfile, shutil
+
+    # For the kernel archive, srcdir may just be a link to the
+    # work-shared location. Use os.path.realpath to make sure
+    # that we archive the actual directory and not just the link.
+    srcdir = os.path.realpath(srcdir)
+    bb.utils.mkdirhier(ar_outdir)
+    filename = '%s.tar.bz2' % d.getVar('PF')
+    tarname = os.path.join(ar_outdir, filename)
+    tar = tarfile.open(tarname, 'w:bz2')
+    tar.add(srcdir, arcname=os.path.basename(srcdir), filter=exclude_useless_paths_and_strip_metadata)
+    tar.close()
+    return tarname
+
+def exclude_useless_paths_and_strip_metadata(tarinfo):
+    if tarinfo.isdir():
+        # Yocto saves logs in /temp, so delete it before archiving.
+        if tarinfo.name.endswith('/temp'):
+            return None
+        if tarinfo.name.endswith('/.git'):
+            return None
+
+    # Clear metadata of the file to make checksum of the tar deterministic.
+    tarinfo.mtime = 0
+    tarinfo.uid = 0
+    tarinfo.uname = ''
+    tarinfo.gid = 0
+    tarinfo.gname = ''
+
+    return tarinfo

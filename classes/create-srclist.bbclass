@@ -5,6 +5,8 @@
 # binaries. Hash values of the files (binary and source) are calculated to enable identification
 # later.
 
+inherit doubleopen-common
+
 PACKAGEFUNCS_append = " write_srclist"
 
 # During do_package, debug info is saved in `results` variable. We need this info later to
