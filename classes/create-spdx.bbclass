@@ -146,27 +146,10 @@ python do_create_spdx() {
         for file in files:
             filepath = os.path.join(subdir,file)
             if os.path.exists(filepath):
-                spdx_file = {}
-                spdx_file["SPDXID"] = "SPDXRef-SourceFile-" + recipe_package["name"] + "-" + str(source_file_counter)
+
+                file_prefix = "SourceFile-" + recipe_package["name"]
+                spdx_file = create_spdx_file(filepath, file_prefix, spdx_workdir, "SOURCE", source_file_counter)
                 source_file_counter += 1
-                spdx_file["checksums"] = []
-                file_sha256 = {}
-                file_sha256["algorithm"] = "SHA256"
-                file_sha256["checksumValue"] = sha256(filepath)
-                file_sha1 = {}
-                file_sha1["algorithm"] = "SHA1"
-                file_sha1["checksumValue"] = sha1(filepath)
-                spdx_file["checksums"].append(file_sha256)
-                spdx_file["checksums"].append(file_sha1)
-                filename = os.path.relpath(os.path.join(subdir, file), spdx_workdir)
-                spdx_file["fileName"] = filename
-                spdx_file["licenseConcluded"] = "NOASSERTION"
-                spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
-                spdx_file["copyrightText"] = "NOASSERTION"
-
-                # All files in the source of the recipe are marked as SOURCE.
-                spdx_file["fileTypes"] = ["SOURCE"]
-
                 spdx['files'].append(spdx_file)
 
                 relationship = {}
@@ -293,5 +276,30 @@ def spdx_get_src(d):
     # Some userland has no source.
     if not os.path.exists( spdx_workdir ):
         bb.utils.mkdirhier(spdx_workdir)
+
+def create_spdx_file(path, id_prefix, base_path, file_type, source_file_counter):
+    spdx_file = {}
+    if id_prefix:
+        spdx_file["SPDXID"] = "SPDXRef-" + id_prefix  + "-" + str(source_file_counter)
+    else:
+        spdx_file["SPDXID"] = "SPDXRef-" + str(source_file_counter)
+    spdx_file["checksums"] = []
+    file_sha256 = {}
+    file_sha256["algorithm"] = "SHA256"
+    file_sha256["checksumValue"] = sha256(path)
+    file_sha1 = {}
+    file_sha1["algorithm"] = "SHA1"
+    file_sha1["checksumValue"] = sha1(path)
+    spdx_file["checksums"].append(file_sha256)
+    spdx_file["checksums"].append(file_sha1)
+    filename = os.path.relpath(path, base_path)
+    spdx_file["fileName"] = filename
+    spdx_file["licenseConcluded"] = "NOASSERTION"
+    spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
+    spdx_file["copyrightText"] = "NOASSERTION"
+
+    spdx_file["fileTypes"] = [file_type]
+
+    return spdx_file
 
 addtask do_create_spdx after do_install before do_build
