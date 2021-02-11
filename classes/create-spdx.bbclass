@@ -82,7 +82,7 @@ python do_create_spdx() {
     # Package Information
     recipe_package = {}
     recipe_package["name"] = d.getVar('PN')
-    recipe_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+    recipe_package["SPDXID"] = "SPDXRef-Package-Recipe-" + d.getVar('PN')
     recipe_package["version"] = d.getVar('PV')
     package_download_location = (d.getVar('SRC_URI', True) or "")
     if package_download_location != "":
@@ -138,6 +138,7 @@ python do_create_spdx() {
     ignore_top_level_dirs = ["temp"]
 
     # Iterate over files in the recipe's source and create SPDX file objects for them.
+    source_file_counter = 1
     for subdir, dirs, files in os.walk(spdx_workdir):
         dirs[:] = [d for d in dirs if d not in ignore_dirs]
         if subdir == spdx_workdir:
@@ -146,7 +147,8 @@ python do_create_spdx() {
             filepath = os.path.join(subdir,file)
             if os.path.exists(filepath):
                 spdx_file = {}
-                spdx_file["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+                spdx_file["SPDXID"] = "SPDXRef-SourceFile-" + recipe_package["name"] + "-" + str(source_file_counter)
+                source_file_counter += 1
                 spdx_file["checksums"] = []
                 file_sha256 = {}
                 file_sha256["algorithm"] = "SHA256"
@@ -189,7 +191,7 @@ python do_create_spdx() {
     for package in packages.split():
         spdx_package = {}
         spdx_package["name"] = package
-        spdx_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+        spdx_package["SPDXID"] = "SPDXRef-Package-" + package
         spdx_package["version"] = d.getVar('PV')
         spdx["packages"].append(spdx_package)
 
@@ -200,6 +202,7 @@ python do_create_spdx() {
         spdx["relationships"].append(package_relationship)
 
         directory = os.path.join(packages_split, package)
+        binary_file_counter = 1
         for subdir, dirs, files in os.walk(directory, followlinks=True):
             if subdir == directory:
                 dirs[:] = [d for d in dirs if d not in ignore_dirs]
@@ -207,7 +210,8 @@ python do_create_spdx() {
                 filepath = os.path.join(subdir, file)
                 if os.path.exists(filepath):
                     spdx_file = {}
-                    spdx_file["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+                    spdx_file["SPDXID"] = "SPDXRef-BinaryFile-" + recipe_package["name"] + "-" + str(binary_file_counter)
+                    binary_file_counter += 1
                     spdx_file["checksums"] = []
                     file_sha256 = {}
                     file_sha256["algorithm"] = "SHA256"
