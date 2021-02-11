@@ -24,7 +24,7 @@ python write_srclist() {
     import json
 
     pkgdatadir = d.getVar('PKGDESTWORK')
-    data_file = pkgdatadir + d.expand("/${PN}")
+    data_file = pkgdatadir + d.expand("/${PF}")
     sourceresults = d.getVar('TEMPDBGSRCMAPPING', False)
     sources = []
 
