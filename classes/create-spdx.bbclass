@@ -80,31 +80,31 @@ python do_create_spdx() {
     spdx["creationInfo"]["creators"] = ["Tool: meta-doubleopen", "Organization: Double Open Project ()", "Person: N/A ()"]
 
     # Package Information
-    spdx_package = {}
-    spdx_package["name"] = d.getVar('PN')
-    spdx_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
-    spdx_package["version"] = d.getVar('PV')
+    recipe_package = {}
+    recipe_package["name"] = d.getVar('PN')
+    recipe_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+    recipe_package["version"] = d.getVar('PV')
     package_download_location = (d.getVar('SRC_URI', True) or "")
     if package_download_location != "":
         package_download_location = package_download_location.split()[0]
-    spdx_package["downloadLocation"] = package_download_location
+    recipe_package["downloadLocation"] = package_download_location
     package_homepage = (d.getVar('HOMEPAGE', True) or "")
-    spdx_package["homepage"] = package_homepage
-    spdx_package["licenseConcluded"] = "NOASSERTION"
-    spdx_package["licenseInfoFromFiles"] = ["NOASSERTION"]
+    recipe_package["homepage"] = package_homepage
+    recipe_package["licenseConcluded"] = "NOASSERTION"
+    recipe_package["licenseInfoFromFiles"] = ["NOASSERTION"]
     licenses = d.getVar("LICENSE")
     if licenses:
-        spdx_package["licenseDeclared"] = licenses
+        recipe_package["licenseDeclared"] = licenses
     else:
-        spdx_package["licenseDeclared"] = "NOASSERTION"
+        recipe_package["licenseDeclared"] = "NOASSERTION"
     package_summary = (d.getVar('SUMMARY', True) or "")
-    spdx_package["summary"] = package_summary
+    recipe_package["summary"] = package_summary
     description = d.getVar('DESCRIPTION')
     if description:
-        spdx_package["description"] = description
+        recipe_package["description"] = description
 
     cpe_ids = get_cpe_ids(d)
-    spdx_package["externalRefs"] = []
+    recipe_package["externalRefs"] = []
 
     if cpe_ids:
         for cpe_id in cpe_ids:
@@ -112,7 +112,7 @@ python do_create_spdx() {
             cpe["referenceCategory"] = "SECURITY"
             cpe["referenceType"] = "http://spdx.org/rdf/references/cpe23Type"
             cpe["referenceLocator"] = cpe_id
-            spdx_package["externalRefs"].append(cpe)
+            recipe_package["externalRefs"].append(cpe)
 
 
     # Some CVEs may be patched during the build process without incrementing the version number,
@@ -122,12 +122,12 @@ python do_create_spdx() {
     patched_cves = list(patched_cves)
     patched_cves = ' '.join(patched_cves)
     if patched_cves:
-        spdx_package["sourceInfo"] = "CVEs fixed: " + patched_cves
+        recipe_package["sourceInfo"] = "CVEs fixed: " + patched_cves
 
     # Get and patch the source for the recipe
     spdx_get_src(d)
 
-    spdx["packages"] = [spdx_package]
+    spdx["packages"] = [recipe_package]
 
     spdx['files'] = []
     spdx["relationships"] = []
@@ -168,7 +168,7 @@ python do_create_spdx() {
                 spdx['files'].append(spdx_file)
 
                 relationship = {}
-                relationship["spdxElementId"] = spdx_package["SPDXID"]
+                relationship["spdxElementId"] = recipe_package["SPDXID"]
                 relationship["relatedSpdxElement"] = spdx_file["SPDXID"]
                 relationship["relationshipType"] = "CONTAINS"
                 spdx["relationships"].append(relationship)
@@ -180,42 +180,61 @@ python do_create_spdx() {
     output_files = []
     ignore_dirs = ["temp", ".git"]
 
-    for subdir, dirs, files in os.walk(output_dir, followlinks=True):
-        if subdir == output_dir:
-            dirs[:] = [d for d in dirs if d not in ignore_dirs]
-        for file in files:
-            filepath = os.path.join(subdir,file)
-            if os.path.exists(filepath):
-                spdx_file = {}
-                spdx_file["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
-                spdx_file["checksums"] = []
-                file_sha256 = {}
-                file_sha256["algorithm"] = "SHA256"
-                file_sha256["checksumValue"] = sha256(filepath)
-                file_sha1 = {}
-                file_sha1["algorithm"] = "SHA1"
-                file_sha1["checksumValue"] = sha1(filepath)
-                spdx_file["checksums"].append(file_sha256)
-                spdx_file["checksums"].append(file_sha1)
-                filename = os.path.relpath(os.path.join(subdir, file), output_dir)
-                spdx_file["fileName"] = filename
-                spdx_file["licenseConcluded"] = "NOASSERTION"
-                spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
-                spdx_file["copyrightText"] = "NOASSERTION"
-            
-                # All deployed files of the package are marked as BINARY.
-                spdx_file["fileTypes"] = ["BINARY"]
+    # Create packages for all sub-packages that the recipe creates.
+    packages = d.getVar('PACKAGES')
 
-                output_files.append(spdx_file)
+    # Yocto splits the packages to PKGDEST, where we can get the binaries of each sub-package from
+    # PKGDEST/name.
+    packages_split = d.getVar("PKGDEST")
+    for package in packages.split():
+        spdx_package = {}
+        spdx_package["name"] = package
+        spdx_package["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+        spdx_package["version"] = d.getVar('PV')
+        spdx["packages"].append(spdx_package)
 
-    if output_files:
-        for file in output_files:
-            relationship = {}
-            relationship["spdxElementId"] = spdx_package["SPDXID"]
-            relationship["relatedSpdxElement"] = file["SPDXID"]
-            relationship["relationshipType"] = "GENERATES"
-            spdx["relationships"].append(relationship)
-            spdx["files"].append(file)
+        package_relationship = {}
+        package_relationship["spdxElementId"] = recipe_package["SPDXID"]
+        package_relationship["relatedSpdxElement"] = spdx_package["SPDXID"]
+        package_relationship["relationshipType"] = "PACKAGE_OF"
+        spdx["relationships"].append(package_relationship)
+
+        directory = os.path.join(packages_split, package)
+        for subdir, dirs, files in os.walk(directory, followlinks=True):
+            if subdir == directory:
+                dirs[:] = [d for d in dirs if d not in ignore_dirs]
+            for file in files:
+                filepath = os.path.join(subdir, file)
+                if os.path.exists(filepath):
+                    spdx_file = {}
+                    spdx_file["SPDXID"] = "SPDXRef-" + str(uuid.uuid4())
+                    spdx_file["checksums"] = []
+                    file_sha256 = {}
+                    file_sha256["algorithm"] = "SHA256"
+                    file_sha256["checksumValue"] = sha256(filepath)
+                    file_sha1 = {}
+                    file_sha1["algorithm"] = "SHA1"
+                    file_sha1["checksumValue"] = sha1(filepath)
+                    spdx_file["checksums"].append(file_sha256)
+                    spdx_file["checksums"].append(file_sha1)
+                    filename = os.path.relpath(os.path.join(subdir, file), directory)
+                    spdx_file["fileName"] = filename
+                    spdx_file["licenseConcluded"] = "NOASSERTION"
+                    spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
+                    spdx_file["copyrightText"] = "NOASSERTION"
+                
+                    # All deployed files of the package are marked as BINARY.
+                    spdx_file["fileTypes"] = ["BINARY"]
+
+                    relationship = {}
+                    relationship["spdxElementId"] = spdx_package["SPDXID"]
+                    relationship["relatedSpdxElement"] = spdx_file["SPDXID"]
+                    relationship["relationshipType"] = "CONTAINS"
+
+                    spdx["relationships"].append(relationship)
+                    spdx["files"].append(spdx_file)
+
+                    output_files.append(spdx_file)
 
     tar_name = spdx_create_tarball(d, spdx_workdir, manifest_dir)
     
