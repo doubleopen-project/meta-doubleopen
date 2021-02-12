@@ -192,26 +192,10 @@ python do_create_spdx() {
             for file in files:
                 filepath = os.path.join(subdir, file)
                 if os.path.exists(filepath):
-                    spdx_file = {}
-                    spdx_file["SPDXID"] = "SPDXRef-BinaryFile-" + recipe_package["name"] + "-" + str(binary_file_counter)
-                    binary_file_counter += 1
-                    spdx_file["checksums"] = []
-                    file_sha256 = {}
-                    file_sha256["algorithm"] = "SHA256"
-                    file_sha256["checksumValue"] = sha256(filepath)
-                    file_sha1 = {}
-                    file_sha1["algorithm"] = "SHA1"
-                    file_sha1["checksumValue"] = sha1(filepath)
-                    spdx_file["checksums"].append(file_sha256)
-                    spdx_file["checksums"].append(file_sha1)
-                    filename = os.path.relpath(os.path.join(subdir, file), directory)
-                    spdx_file["fileName"] = filename
-                    spdx_file["licenseConcluded"] = "NOASSERTION"
-                    spdx_file["licenseInfoInFiles"] = ["NOASSERTION"]
-                    spdx_file["copyrightText"] = "NOASSERTION"
-                
                     # All deployed files of the package are marked as BINARY.
-                    spdx_file["fileTypes"] = ["BINARY"]
+                    spdx_id_prefix = "BinaryFile-" + spdx_package["name"]
+                    spdx_file = create_spdx_file(filepath, spdx_id_prefix, directory, "BINARY", binary_file_counter)
+                    binary_file_counter += 1
 
                     relationship = {}
                     relationship["spdxElementId"] = spdx_package["SPDXID"]
