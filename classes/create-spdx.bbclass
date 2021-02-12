@@ -80,41 +80,22 @@ python do_create_spdx() {
     spdx["creationInfo"]["creators"] = ["Tool: meta-doubleopen", "Organization: Double Open Project ()", "Person: N/A ()"]
 
     # Package Information
-    recipe_package = {}
-    recipe_package["name"] = d.getVar('PN')
-    recipe_package["SPDXID"] = "SPDXRef-Package-Recipe-" + d.getVar('PN')
-    recipe_package["version"] = d.getVar('PV')
-    package_download_location = (d.getVar('SRC_URI', True) or "")
-    if package_download_location != "":
-        package_download_location = package_download_location.split()[0]
-    recipe_package["downloadLocation"] = package_download_location
-    package_homepage = (d.getVar('HOMEPAGE', True) or "")
-    recipe_package["homepage"] = package_homepage
-    recipe_package["licenseConcluded"] = "NOASSERTION"
-    recipe_package["licenseInfoFromFiles"] = ["NOASSERTION"]
-    licenses = d.getVar("LICENSE")
-    if licenses:
-        recipe_package["licenseDeclared"] = licenses
-    else:
-        recipe_package["licenseDeclared"] = "NOASSERTION"
-    package_summary = (d.getVar('SUMMARY', True) or "")
-    recipe_package["summary"] = package_summary
-    description = d.getVar('DESCRIPTION')
-    if description:
-        recipe_package["description"] = description
-
+    recipe_download_location = d.getVar('SRC_URI', True)
+    if recipe_download_location:
+        recipe_download_location = recipe_download_location.split()[0]
+    recipe_homepage = (d.getVar('HOMEPAGE', True) or "")
+    recipe_licenses = d.getVar("LICENSE")
+    recipe_summary = (d.getVar('SUMMARY', True) or "")
+    recipe_description = d.getVar('DESCRIPTION')
+    recipe_external_refs = []
     cpe_ids = get_cpe_ids(d)
-    recipe_package["externalRefs"] = []
-
     if cpe_ids:
         for cpe_id in cpe_ids:
             cpe = {}
             cpe["referenceCategory"] = "SECURITY"
             cpe["referenceType"] = "http://spdx.org/rdf/references/cpe23Type"
             cpe["referenceLocator"] = cpe_id
-            recipe_package["externalRefs"].append(cpe)
-
-
+            recipe_external_refs.append(cpe)
     # Some CVEs may be patched during the build process without incrementing the version number,
     # so querying for CVEs based on the CPE id can lead to false positives. To account for this,
     # save the CVEs fixed by patches to source information field in the SPDX.
@@ -122,7 +103,18 @@ python do_create_spdx() {
     patched_cves = list(patched_cves)
     patched_cves = ' '.join(patched_cves)
     if patched_cves:
-        recipe_package["sourceInfo"] = "CVEs fixed: " + patched_cves
+        recipe_source_info = "CVEs fixed: " + patched_cves
+    else:
+        recipe_source_info = ""
+    
+    recipe_package = create_spdx_package(
+        name=d.getVar('PN'), version=d.getVar('PV'), id_prefix="Recipe",
+        source_location=recipe_download_location, 
+        homepage=d.getVar("HOMEPAGE", True),
+        license_declared=d.getVar("LICENSE"), summary=d.getVar("SUMMARY", True),
+        description=d.getVar("DESCRIPTION"), external_refs=recipe_external_refs,
+        source_info=recipe_source_info
+        )
 
     # Get and patch the source for the recipe
     spdx_get_src(d)
@@ -172,10 +164,9 @@ python do_create_spdx() {
     # PKGDEST/name.
     packages_split = d.getVar("PKGDEST")
     for package in packages.split():
-        spdx_package = {}
-        spdx_package["name"] = package
-        spdx_package["SPDXID"] = "SPDXRef-Package-" + package
-        spdx_package["version"] = d.getVar('PV')
+        spdx_package = create_spdx_package(
+            name=package, version= d.getVar("PV"), id_prefix="Package"
+        )
         spdx["packages"].append(spdx_package)
 
         package_relationship = {}
@@ -285,5 +276,36 @@ def create_spdx_file(path, id_prefix, base_path, file_type, source_file_counter)
     spdx_file["fileTypes"] = [file_type]
 
     return spdx_file
+
+def create_spdx_package(name, version, id_prefix, source_location=None, homepage=None, license_declared=None, summary=None, description=None, external_refs=None, source_info=None):
+    # Package Information
+    package = {}
+    package["name"] = name
+    package["SPDXID"] = "SPDXRef-" + id_prefix + "-" + name
+    package["version"] = version
+    if source_location:
+        package["downloadLocation"] = source_location
+    else:
+        package["downloadLocation"] = "NOASSERTION"
+    if homepage:
+        package["homepage"] = homepage
+    package["licenseConcluded"] = "NOASSERTION"
+    package["licenseInfoFromFiles"] = ["NOASSERTION"]
+    if license_declared:
+        package["licenseDeclared"] = license_declared
+    else:
+        package["licenseDeclared"] = "NOASSERTION"
+    if summary:
+        package["summary"] = summary
+    if description:
+        package["description"] = description
+    if external_refs:
+        package["externalRefs"] = external_refs
+    if source_info:
+        package["sourceInfo"] = source_info
+    return package
+
+
+
 
 addtask do_create_spdx after do_install before do_build
