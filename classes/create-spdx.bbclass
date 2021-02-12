@@ -11,7 +11,7 @@ SPDX_EXCLUDE_NATIVE ??= "1"
 SPDX_EXCLUDE_SDK ??= "1"
 SPDX_EXCLUDE_PACKAGES ??= ""
 
-do_write_spdx[dirs] = "${WORKDIR}"
+do_create_spdx[dirs] = "${WORKDIR}"
 
 python do_create_spdx() {
     """
@@ -184,7 +184,7 @@ python do_create_spdx() {
                 filepath = os.path.join(subdir, file)
                 if os.path.exists(filepath):
                     # All deployed files of the package are marked as BINARY.
-                    spdx_id_prefix = "BinaryFile-" + spdx_package["name"]
+                    spdx_id_prefix = "PackagedFile-" + spdx_package["name"]
                     spdx_file = create_spdx_file(filepath, spdx_id_prefix, directory, "BINARY", binary_file_counter)
                     binary_file_counter += 1
 
