@@ -18,8 +18,6 @@ python do_create_spdx() {
     Write SPDX information of the package to an SPDX JSON document.
     """
     import os
-    from datetime import datetime, timezone
-    import uuid
 
     if bb.data.inherits_class('nopackages', d):
         return
@@ -64,20 +62,7 @@ python do_create_spdx() {
     data_file = manifest_dir + d.expand("/${PF}")
 
     # Create SPDX for the package
-    spdx = {}
-
-    # Document Creation information
-    spdx["spdxVersion"] = "SPDX-2.2"
-    spdx["dataLicense"] = "CC0-1.0"
-    spdx["SPDXID"] = "SPDXRef-" + d.getVar("PF")
-    spdx["name"] = d.getVar("PF")
-    spdx["documentNamespace"] = "http://spdx.org/spdxdocs/" + spdx["name"] + str(uuid.uuid4())
-    spdx["creationInfo"] = {}
-    creation_time = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    spdx["creationInfo"]["created"] = creation_time
-    spdx["creationInfo"]["licenseListVersion"] = "3.11"
-    spdx["creationInfo"]["comment"] = "This document was created by analyzing the source of the Yocto recipe during the build."
-    spdx["creationInfo"]["creators"] = ["Tool: meta-doubleopen", "Organization: Double Open Project ()", "Person: N/A ()"]
+    spdx = create_base_spdx(d.getVar("PF"))
 
     # Package Information
     recipe_download_location = d.getVar('SRC_URI', True)
@@ -119,10 +104,7 @@ python do_create_spdx() {
     # Get and patch the source for the recipe
     spdx_get_src(d)
 
-    spdx["packages"] = [recipe_package]
-
-    spdx['files'] = []
-    spdx["relationships"] = []
+    spdx["packages"].append(recipe_package)
 
     ignore_dirs = [".git"]
     # Yocto creates temp directory for logs etc in the top level of the workdir. We want to ignore

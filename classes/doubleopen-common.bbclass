@@ -107,3 +107,25 @@ def exclude_useless_paths_and_strip_metadata(tarinfo):
     tarinfo.gname = ''
 
     return tarinfo
+
+def create_base_spdx(name):
+    import uuid
+    from datetime import datetime, timezone
+
+    spdx = {}
+    # Document Creation information
+    spdx["spdxVersion"] = "SPDX-2.2"
+    spdx["dataLicense"] = "CC0-1.0"
+    spdx["SPDXID"] = f"SPDXRef-{name}"
+    spdx["name"] = name
+    spdx["documentNamespace"] = "http://spdx.org/spdxdocs/" + spdx["name"] + str(uuid.uuid4())
+    spdx["creationInfo"] = {}
+    creation_time = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    spdx["creationInfo"]["created"] = creation_time
+    spdx["creationInfo"]["licenseListVersion"] = "3.11"
+    spdx["creationInfo"]["comment"] = "This document was created by analyzing the source of the Yocto recipe during the build."
+    spdx["creationInfo"]["creators"] = ["Tool: meta-doubleopen", "Organization: Double Open Project ()", "Person: N/A ()"]
+    spdx["packages"] = []
+    spdx["files"] = []
+    spdx["relationships"] = []
+    return spdx
