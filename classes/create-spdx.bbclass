@@ -154,7 +154,7 @@ python do_create_spdx() {
         package_relationship = {}
         package_relationship["spdxElementId"] = recipe_package["SPDXID"]
         package_relationship["relatedSpdxElement"] = spdx_package["SPDXID"]
-        package_relationship["relationshipType"] = "PACKAGE_OF"
+        package_relationship["relationshipType"] = "GENERATES"
         spdx["relationships"].append(package_relationship)
 
         directory = os.path.join(packages_split, package)
