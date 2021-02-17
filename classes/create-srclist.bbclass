@@ -23,6 +23,10 @@ python write_srclist() {
     """
     import json
 
+    spdx_deploy_dir = d.getVar('SPDX_DEPLOY_DIR')
+    if not os.path.exists(spdx_deploy_dir):
+        bb.utils.mkdirhier(spdx_deploy_dir)
+
     pkgdatadir = d.getVar('PKGDESTWORK')
     data_file = pkgdatadir + d.expand("/${PF}")
     sourceresults = d.getVar('TEMPDBGSRCMAPPING', False)
@@ -62,8 +66,10 @@ python write_srclist() {
                 binary["sources"].append(source_file)
 
             sources.append(binary)
+        
+        srclist_deploy_path = os.path.join(d.getVar("SPDX_DEPLOY_DIR"), d.getVar("PF") + ".srclist.json")
 
-        with open(data_file + ".srclist.json", 'w') as f:
+        with open(srclist_deploy_path, 'w') as f:
             f.write(json.dumps(sources, sort_keys=True))
 
         # Outputting sourceresults for development purposes.
