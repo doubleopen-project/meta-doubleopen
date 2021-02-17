@@ -1,6 +1,6 @@
 classDiagram
     SPDXDocument --> TargetImage : DESCRIBES
-    TargetImage --> "many" SubPackage : CONTAINS
+    TargetImage <-- "many" SubPackage : PACKAGE_OF
     Recipe --> "many" SubPackage : GENERATES
     Recipe --> "many" SourceFile : CONTAINS
     SubPackage --> "many" PackagedFile : CONTAINS
