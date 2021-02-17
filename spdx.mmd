@@ -1,0 +1,26 @@
+classDiagram
+    SPDXDocument --> TargetImage : DESCRIBES
+    TargetImage --> "many" SubPackage : CONTAINS
+    Recipe --> "many" SubPackage : GENERATES
+    Recipe --> "many" SourceFile : CONTAINS
+    SubPackage --> "many" PackagedFile : CONTAINS
+    PackagedFile --> "many" SourceFile : GENERATED_FROM
+    class SPDXDocument{
+        v2.2
+    }
+    class TargetImage{
+        <<SPDX Package>>
+    }
+    class Recipe{
+        <<SPDX Package>>
+        acl, bash...
+    }
+    class SubPackage{
+        <<SPDX Package>>
+    }
+    class SourceFile{
+        <<SPDX File>>
+    }
+    class PackagedFile{
+        <<SPDX File>>
+    }

@@ -9,6 +9,8 @@ layer saves information from a Yocto build that is required for the workflow.
 
 The layer saves SPDX documents describing the packages of the build in json format to `deploy/spdx`.
 
+![SPDX Format](./spdx.mmd.svg)
+
 ### Source archive
 
 The layer saves source archives of the packages to `deploy/spdx`.
