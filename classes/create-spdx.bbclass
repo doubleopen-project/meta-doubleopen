@@ -259,35 +259,4 @@ def create_spdx_file(path, id_prefix, base_path, file_type, source_file_counter)
 
     return spdx_file
 
-def create_spdx_package(name, version, id_prefix, source_location=None, homepage=None, license_declared=None, summary=None, description=None, external_refs=None, source_info=None):
-    # Package Information
-    package = {}
-    package["name"] = name
-    package["SPDXID"] = "SPDXRef-" + id_prefix + "-" + name
-    package["version"] = version
-    if source_location:
-        package["downloadLocation"] = source_location
-    else:
-        package["downloadLocation"] = "NOASSERTION"
-    if homepage:
-        package["homepage"] = homepage
-    package["licenseConcluded"] = "NOASSERTION"
-    package["licenseInfoFromFiles"] = ["NOASSERTION"]
-    if license_declared:
-        package["licenseDeclared"] = license_declared
-    else:
-        package["licenseDeclared"] = "NOASSERTION"
-    if summary:
-        package["summary"] = summary
-    if description:
-        package["description"] = description
-    if external_refs:
-        package["externalRefs"] = external_refs
-    if source_info:
-        package["sourceInfo"] = source_info
-    return package
-
-
-
-
 addtask do_create_spdx after do_install before do_build
