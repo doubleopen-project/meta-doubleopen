@@ -259,4 +259,4 @@ def create_spdx_file(path, id_prefix, base_path, file_type, source_file_counter)
 
     return spdx_file
 
-addtask do_create_spdx after do_install before do_build
+addtask do_create_spdx after do_package before do_build
