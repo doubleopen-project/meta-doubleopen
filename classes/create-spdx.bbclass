@@ -41,11 +41,6 @@ python do_create_spdx() {
     if (d.getVar('PN') == "shadow-sysroot"):
         return
 
-    # We just archive gcc-source for all the gcc related recipes
-    if d.getVar('BPN') in ['gcc', 'libgcc']:
-        bb.debug(1, 'spdx: There is bug in scan of %s is, do nothing' % pn)
-        return
-
     spdx_outdir = d.getVar('SPDX_OUTDIR')
     spdx_workdir = d.getVar('SPDX_WORKDIR')
     spdx_temp_dir = os.path.join(spdx_workdir, "temp")
