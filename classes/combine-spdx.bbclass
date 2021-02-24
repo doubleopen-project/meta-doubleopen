@@ -5,7 +5,8 @@ IMAGE_POSTPROCESS_COMMAND += "combine_spdx"
 python combine_spdx() {
     """
     Creates an SPDX JSON document for the taget image by combining the SPDX documents
-    of the included packages.
+    of the included packages. Also processes the srclist files for all recipes and 
+    adds the relationships between binary and source files to the SPDX.
     """
     import os
     import json
@@ -16,6 +17,10 @@ python combine_spdx() {
     image_name = d.getVar("IMAGE_NAME")
     image_spdx = create_base_spdx(image_name)
 
+    # Store relationships between binary files and their sources in dictionary.
+    # Key: SPDXID of the binary file, value: list of sha256 checksums of sources.
+    binary_source_relationships = {}
+
     # Get SPDX for all recipes and add packages, files and relationships to the image's
     # SPDX.
     for filename in os.listdir(d.getVar("SPDX_DEPLOY_DIR")):
@@ -25,7 +30,46 @@ python combine_spdx() {
                 image_spdx["packages"].extend(package_spdx["packages"])
                 image_spdx["files"].extend(package_spdx["files"])
                 image_spdx["relationships"].extend(package_spdx["relationships"])
-    
+            
+                srclist_name = filename[:-9] + "srclist.json"
+
+                # Check if package has a corresponding srclist file, store relationships
+                # in the dictionary if the file exists.
+                if os.path.exists(os.path.join(d.getVar("SPDX_DEPLOY_DIR"), srclist_name)):
+                    with open(os.path.join(d.getVar("SPDX_DEPLOY_DIR"), srclist_name)) as f:
+                        for binary_file in json.load(f):
+                            for spdx_file in package_spdx["files"]:
+                                for checksum in spdx_file["checksums"]:
+                                    if checksum["algorithm"] == "SHA256":
+                                        if binary_file["sha256"] == checksum["checksumValue"]:
+                                            binary_file_spdx_id = spdx_file["SPDXID"]
+                                            binary_source_relationships[binary_file_spdx_id] = [source["sha256"] for source in binary_file["sources"] if source["sha256"]]
+                                            break
+
+
+    # Store SPDXID's of files from the SPDX in a dict with sha256 as the key to
+    # make lookups faster.
+    sha256_to_spdxid = {}
+    for spdx_file in image_spdx["files"]:
+        for checksum in spdx_file["checksums"]:
+            if checksum["algorithm"] == "SHA256":
+                sha256 = checksum["checksumValue"]
+        sha256_to_spdxid[sha256] = spdx_file["SPDXID"]
+
+    # Add relationships between binaries and their source.
+    for binary, sources in binary_source_relationships.items():
+        for source in sources:
+            if source in sha256_to_spdxid:
+                relationship = {}
+                relationship["spdxElementId"] = binary
+                relationship["relatedSpdxElement"] = sha256_to_spdxid[source]
+                relationship["relationshipType"] = "GENERATED_FROM"
+                image_spdx["relationships"].append(relationship)
+            else:
+                bb.warn(f"No spdxid found for {source} of {binary}")
+
+
+
     # Create SPDX package for the image.
     image_package = create_spdx_package(
         name=d.getVar("IMAGE_NAME"), version=d.getVar("PV"), id_prefix="Image",
