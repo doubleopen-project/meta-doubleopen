@@ -1,4 +1,5 @@
 inherit doubleopen-common
+inherit oe-pkgdata-util
 
 IMAGE_POSTPROCESS_COMMAND += "combine_spdx"
 
@@ -81,7 +82,7 @@ python combine_spdx() {
     image_manifest = d.getVar("IMAGE_MANIFEST")
     with open(image_manifest, 'r') as f:
         for sub_package in f:
-            sub_package_name = sub_package.split()[0]
+            sub_package_name = lookup_pkg(sub_package.split()[0], d.getVar("PKGDATA_DIR"), True)
             for spdx_package in image_spdx["packages"]:
                 if spdx_package["name"] == sub_package_name and "-Package-" in spdx_package["SPDXID"]:
                     # TODO: Does not find package for all packages in manifest, meaning
