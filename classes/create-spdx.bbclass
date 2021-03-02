@@ -145,40 +145,42 @@ python do_create_spdx() {
     # Yocto splits the packages to PKGDEST, where we can get the binaries of each sub-package from
     # PKGDEST/name.
     packages_split = d.getVar("PKGDEST")
-    for package in packages.split():
-        spdx_package = create_spdx_package(
-            name=package, version= d.getVar("PV"), id_prefix="Package"
-        )
-        spdx["packages"].append(spdx_package)
+    for subdir, dirs, files in os.walk(packages_split):
+        if subdir == packages_split:
+            for package in dirs:
+                spdx_package = create_spdx_package(
+                    name=package, version= d.getVar("PV"), id_prefix="Package"
+                )
+                spdx["packages"].append(spdx_package)
 
-        package_relationship = {}
-        package_relationship["spdxElementId"] = recipe_package["SPDXID"]
-        package_relationship["relatedSpdxElement"] = spdx_package["SPDXID"]
-        package_relationship["relationshipType"] = "GENERATES"
-        spdx["relationships"].append(package_relationship)
+                package_relationship = {}
+                package_relationship["spdxElementId"] = recipe_package["SPDXID"]
+                package_relationship["relatedSpdxElement"] = spdx_package["SPDXID"]
+                package_relationship["relationshipType"] = "GENERATES"
+                spdx["relationships"].append(package_relationship)
 
-        directory = os.path.join(packages_split, package)
-        binary_file_counter = 1
-        for subdir, dirs, files in os.walk(directory, followlinks=True):
-            if subdir == directory:
-                dirs[:] = [d for d in dirs if d not in ignore_dirs]
-            for file in files:
-                filepath = os.path.join(subdir, file)
-                if os.path.exists(filepath):
-                    # All deployed files of the package are marked as BINARY.
-                    spdx_id_prefix = "PackagedFile-" + spdx_package["name"]
-                    spdx_file = create_spdx_file(filepath, spdx_id_prefix, directory, "BINARY", binary_file_counter)
-                    binary_file_counter += 1
+                directory = os.path.join(packages_split, package)
+                binary_file_counter = 1
+                for subdir, dirs, files in os.walk(directory, followlinks=True):
+                    if subdir == directory:
+                        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+                    for file in files:
+                        filepath = os.path.join(subdir, file)
+                        if os.path.exists(filepath):
+                            # All deployed files of the package are marked as BINARY.
+                            spdx_id_prefix = "PackagedFile-" + spdx_package["name"]
+                            spdx_file = create_spdx_file(filepath, spdx_id_prefix, directory, "BINARY", binary_file_counter)
+                            binary_file_counter += 1
 
-                    relationship = {}
-                    relationship["spdxElementId"] = spdx_package["SPDXID"]
-                    relationship["relatedSpdxElement"] = spdx_file["SPDXID"]
-                    relationship["relationshipType"] = "CONTAINS"
+                            relationship = {}
+                            relationship["spdxElementId"] = spdx_package["SPDXID"]
+                            relationship["relatedSpdxElement"] = spdx_file["SPDXID"]
+                            relationship["relationshipType"] = "CONTAINS"
 
-                    spdx["relationships"].append(relationship)
-                    spdx["files"].append(spdx_file)
+                            spdx["relationships"].append(relationship)
+                            spdx["files"].append(spdx_file)
 
-                    output_files.append(spdx_file)
+                            output_files.append(spdx_file)
 
     tar_name = spdx_create_tarball(d, spdx_workdir, manifest_dir)
     
