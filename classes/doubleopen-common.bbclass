@@ -135,7 +135,7 @@ def create_spdx_package(name, version, id_prefix, source_location=None, homepage
     package = {}
     package["name"] = name
     package["SPDXID"] = "SPDXRef-" + id_prefix + "-" + name
-    package["version"] = version
+    package["versionInfo"] = version
     if source_location:
         package["downloadLocation"] = source_location
     else:
