@@ -156,4 +156,5 @@ def create_spdx_package(name, version, id_prefix, source_location=None, homepage
         package["externalRefs"] = external_refs
     if source_info:
         package["sourceInfo"] = source_info
+    package["copyrightText"] = "NOASSERTION"
     return package

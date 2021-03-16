@@ -100,6 +100,9 @@ python combine_spdx() {
 
     image_spdx["packages"].append(image_package)
     image_spdx["documentDescribes"] = [image_package["SPDXID"]]
+    image_spdx["hasExtractedLicensingInfos"] = []
+    image_spdx["snippets"] = []
+    image_spdx["annotations"] = []
 
     image_basename = d.getVar("IMAGE_BASENAME")
     image_spdx_path = os.path.join(deploy_dir_image, f"{image_basename}.spdx.json")
