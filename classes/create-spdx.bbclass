@@ -18,6 +18,7 @@ python do_create_spdx() {
     Write SPDX information of the package to an SPDX JSON document.
     """
     import os
+    import shutil
 
     if bb.data.inherits_class('nopackages', d):
         return
@@ -182,6 +183,12 @@ python do_create_spdx() {
 
                             output_files.append(spdx_file)
 
+    # Copy the packaged files to the archive for uploading.
+    pkgd_contents_dir = os.path.join(spdx_workdir, "pkgd_contents")
+    if os.path.exists(output_dir):
+        if os.path.exists(pkgd_contents_dir):
+            shutil.rmtree(pkgd_contents_dir)
+        shutil.copytree(output_dir, pkgd_contents_dir, symlinks=True, ignore_dangling_symlinks=True)
     tar_name = spdx_create_tarball(d, spdx_workdir, manifest_dir)
     
     # Save SPDX for the package in pkgdata.
