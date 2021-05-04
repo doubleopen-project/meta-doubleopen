@@ -12,6 +12,7 @@ SPDX_EXCLUDE_SDK ??= "1"
 SPDX_EXCLUDE_PACKAGES ??= ""
 
 do_create_spdx[dirs] = "${WORKDIR}"
+do_image_complete[depends] = "virtual/kernel:do_create_spdx"
 
 python do_create_spdx() {
     """
