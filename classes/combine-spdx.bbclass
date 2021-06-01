@@ -1,7 +1,7 @@
 inherit doubleopen-common
 inherit oe-pkgdata-util
 
-IMAGE_POSTPROCESS_COMMAND += "combine_spdx"
+IMAGE_POSTPROCESS_COMMAND += "combine_spdx ;"
 
 python combine_spdx() {
     """
