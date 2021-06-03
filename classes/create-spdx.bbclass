@@ -168,8 +168,14 @@ python do_create_spdx() {
     for subdir, dirs, files in os.walk(packages_split):
         if subdir == packages_split:
             for package in dirs:
+                package_license = d.getVar("LICENSE_%s" % package)
+                if package_license is None:
+                    package_license = license
+                else:
+                    package_license = convert_license_to_spdx(package_license, d)
                 spdx_package = create_spdx_package(
-                    name=package, version= d.getVar("PV"), id_prefix="Package"
+                    name=package, version= d.getVar("PV"), id_prefix="Package",
+                    license_declared=package_license
                 )
                 spdx["packages"].append(spdx_package)
 
@@ -178,6 +184,13 @@ python do_create_spdx() {
                 package_relationship["relatedSpdxElement"] = spdx_package["SPDXID"]
                 package_relationship["relationshipType"] = "GENERATES"
                 spdx["relationships"].append(package_relationship)
+
+                describes_relationship = {
+                    "spdxElementId": spdx["SPDXID"],
+                    "relatedSpdxElement": spdx_package["SPDXID"],
+                    "relationshipType": "DESCRIBES",
+                }
+                spdx["relationships"].append(describes_relationship)
 
                 directory = os.path.join(packages_split, package)
                 binary_file_counter = 1
