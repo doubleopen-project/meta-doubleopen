@@ -14,6 +14,22 @@ SPDX_EXCLUDE_PACKAGES ??= ""
 do_create_spdx[dirs] = "${WORKDIR}"
 do_image_complete[depends] = "virtual/kernel:do_create_spdx"
 
+def convert_license_to_spdx(lic, d):
+    def convert(l):
+        if l == "&":
+            return "AND"
+
+        if l == "|":
+            return "OR"
+
+        spdx = d.getVarFlag('SPDXLICENSEMAP', l)
+        if spdx is not None:
+            return spdx
+
+        return l
+
+    return ' '.join(convert(l) for l in lic.split())
+
 python do_create_spdx() {
     """
     Write SPDX information of the package to an SPDX JSON document.
@@ -93,12 +109,14 @@ python do_create_spdx() {
         recipe_source_info = "CVEs fixed: " + patched_cves
     else:
         recipe_source_info = ""
-    
+
+    license = convert_license_to_spdx(d.getVar("LICENSE"), d)
+
     recipe_package = create_spdx_package(
         name=d.getVar('PN'), version=d.getVar('PV'), id_prefix="Recipe",
-        source_location=recipe_download_location, 
+        source_location=recipe_download_location,
         homepage=d.getVar("HOMEPAGE", True),
-        license_declared=d.getVar("LICENSE"), summary=d.getVar("SUMMARY", True),
+        license_declared=license, summary=d.getVar("SUMMARY", True),
         description=d.getVar("DESCRIPTION"), external_refs=recipe_external_refs,
         source_info=recipe_source_info
         )
