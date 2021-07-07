@@ -116,7 +116,7 @@ def create_base_spdx(name):
     # Document Creation information
     spdx["spdxVersion"] = "SPDX-2.2"
     spdx["dataLicense"] = "CC0-1.0"
-    spdx["SPDXID"] = f"SPDXRef-{name}"
+    spdx["SPDXID"] = "SPDXRef-{name}".format(name=name)
     spdx["name"] = name
     spdx["documentNamespace"] = "http://spdx.org/spdxdocs/" + spdx["name"] + str(uuid.uuid4())
     spdx["creationInfo"] = {}
