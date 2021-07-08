@@ -67,7 +67,7 @@ python combine_spdx() {
                 relationship["relationshipType"] = "GENERATED_FROM"
                 image_spdx["relationships"].append(relationship)
             else:
-                bb.warn("No spdxid found for {source} of {binary}".format(source=source, binary=binary))
+                bb.debug(2, "No spdxid found for {source} of {binary}".format(source=source, binary=binary))
 
 
 
@@ -88,7 +88,7 @@ python combine_spdx() {
                     # TODO: Does not find package for all packages in manifest, meaning
                     # that all packages in manifest are not included in recipes' PACKAGES
                     # variable. Why?
-                    bb.warn("Found package for {sub_package_name}".format(sub_package_name=sub_package_name))
+                    bb.debug(2, "Found package for {sub_package_name}".format(sub_package_name=sub_package_name))
                     relationship = {}
                     relationship["spdxElementId"] = spdx_package["SPDXID"]
                     relationship["relatedSpdxElement"] = image_package["SPDXID"]
@@ -96,7 +96,7 @@ python combine_spdx() {
                     image_spdx["relationships"].append(relationship)
                     break
             else:
-                bb.warn("Did not find package for {sub_package_name}".format(sub_package_name=sub_package_name))
+                bb.debug(2, "Did not find package for {sub_package_name}".format(sub_package_name=sub_package_name))
 
     image_spdx["packages"].append(image_package)
     image_spdx["documentDescribes"] = [image_package["SPDXID"]]
