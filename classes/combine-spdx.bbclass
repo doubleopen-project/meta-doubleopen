@@ -106,6 +106,7 @@ python combine_spdx() {
 
     image_basename = d.getVar("IMAGE_BASENAME")
     image_spdx_path = os.path.join(deploy_dir_image, "{image_basename}.spdx.json".format(image_basename=image_basename))
+    d.setVar("SPDX_IMAGE_PATH", image_spdx_path)
     with open(image_spdx_path, 'w') as f:
         f.write(json.dumps(image_spdx, indent=4))
 }
