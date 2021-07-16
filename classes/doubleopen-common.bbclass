@@ -99,10 +99,11 @@ def exclude_useless_paths_and_strip_metadata(tarinfo):
         if tarinfo.name.endswith('/.git'):
             return None
 
-    import magic
+    import subprocess
+
     if not tarinfo.isdir() and os.path.isfile(tarinfo.name):
-        mime = magic.from_file(tarinfo.name)
-        if not "text" in mime or mime == "empty":
+        mime = subprocess.Popen(["file", "-b", tarinfo.name], stdout=subprocess.PIPE).stdout.read().decode('ascii').strip()
+        if not "text" in mime and mime != "empty":
             bb.debug(3, "Filtering file {tarinfo} from the archive as its filetype is {mime}.".format(tarinfo=tarinfo.name, mime=mime))
             return None
 

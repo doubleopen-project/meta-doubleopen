@@ -1,1 +1,0 @@
-PREFERRED_VERSION_python-python-magic = "0.4.24"
