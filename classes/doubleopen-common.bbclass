@@ -99,6 +99,13 @@ def exclude_useless_paths_and_strip_metadata(tarinfo):
         if tarinfo.name.endswith('/.git'):
             return None
 
+    import magic
+    if not tarinfo.isdir() and os.path.isfile(tarinfo.name):
+        mime = magic.from_file(tarinfo.name)
+        if not "text" in mime or mime == "empty":
+            bb.debug(3, "Filtering file {tarinfo} from the archive as its filetype is {mime}.".format(tarinfo=tarinfo.name, mime=mime))
+            return None
+
     # Clear metadata of the file to make checksum of the tar deterministic.
     tarinfo.mtime = 0
     tarinfo.uid = 0
