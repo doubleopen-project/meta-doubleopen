@@ -146,7 +146,10 @@ python do_create_spdx() {
         if subdir == packages_split:
             for package in dirs:
                 spdx_package = create_spdx_package(
-                    name=package, version= d.getVar("PV"), id_prefix="Package"
+                    name=package,
+                    version= d.getVar("PV"),
+                    id_prefix="Package",
+                    license_declared=d.getVar("LICENSE:%s" % package) or d.getVar("LICENSE")
                 )
                 spdx["packages"].append(spdx_package)
 
