@@ -103,7 +103,7 @@ def exclude_useless_paths_and_strip_metadata(tarinfo):
 
     if not tarinfo.isdir() and os.path.isfile(tarinfo.name):
         bb.debug(3, "Running file on {tarinfo}.".format(tarinfo=tarinfo.name))
-        mime = subprocess.Popen(["file", "-b", tarinfo.name], stdout=subprocess.PIPE).stdout.read().decode('ascii').strip()
+        mime = subprocess.Popen(["file", "-b", tarinfo.name], stdout=subprocess.PIPE).stdout.read().decode('utf-8').strip()
         if not "text" in mime and mime != "empty":
             bb.debug(3, "Filtering file {tarinfo} from the archive as its filetype is {mime}.".format(tarinfo=tarinfo.name, mime=mime))
             return None
