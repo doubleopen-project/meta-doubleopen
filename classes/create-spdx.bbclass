@@ -1,5 +1,6 @@
 inherit doubleopen-common
 inherit cve-data
+inherit convert-license-to-spdx
 
 
 SPDX_DEPLOY_DIR ??= "${DEPLOY_DIR}/spdx"
@@ -93,7 +94,7 @@ python do_create_spdx() {
         name=d.getVar('PN'), version=d.getVar('PV'), id_prefix="Recipe",
         source_location=recipe_download_location, 
         homepage=d.getVar("HOMEPAGE", True),
-        license_declared=d.getVar("LICENSE"), summary=d.getVar("SUMMARY", True),
+        license_declared=convert_license_to_spdx(d.getVar("LICENSE"), d), summary=d.getVar("SUMMARY", True),
         description=d.getVar("DESCRIPTION"), external_refs=recipe_external_refs,
         source_info=recipe_source_info
         )
@@ -149,7 +150,7 @@ python do_create_spdx() {
                     name=package,
                     version= d.getVar("PV"),
                     id_prefix="Package",
-                    license_declared=d.getVar("LICENSE:%s" % package) or d.getVar("LICENSE")
+                    license_declared=convert_license_to_spdx(d.getVar("LICENSE:%s" % package) or d.getVar("LICENSE"), d)
                 )
                 spdx["packages"].append(spdx_package)
 
