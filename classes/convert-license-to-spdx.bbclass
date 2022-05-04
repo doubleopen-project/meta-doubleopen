@@ -118,7 +118,7 @@ def convert_license_to_spdx(lic, d):
         if l == "|":
             return "OR"
 
-        spdx_license = d.getVarFlag("SPDXLICENSEMAP", l) or l
+        spdx_license = d.getVarFlag("SPDXLICENSEMAP", l) or l.replace("_", "-")
 
         return spdx_license
 
